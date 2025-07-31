@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>羽球分隊工具</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Microsoft JhengHei', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* 獎盃背景裝飾 */
+    .trophy-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0.1;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .trophy {
+      position: absolute;
+      font-size: 60px;
+      color: gold;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    .trophy:nth-child(1) { top: 10%; left: 10%; animation-delay: 0s; }
+    .trophy:nth-child(2) { top: 20%; right: 15%; animation-delay: 2s; }
+    .trophy:nth-child(3) { bottom: 30%; left: 20%; animation-delay: 4s; }
+    .trophy:nth-child(4) { bottom: 15%; right: 10%; animation-delay: 1s; }
+    .trophy:nth-child(5) { top: 50%; left: 5%; animation-delay: 3s; }
+    .trophy:nth-child(6) { top: 40%; right: 5%; animation-delay: 5s; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(5deg); }
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .header .trophy-icon {
+      font-size: 3rem;
+      color: gold;
+      text-shadow: 2px 2px 8px rgba(255,215,0,0.5);
+    }
+
+    /* 分享功能 */
+    .share-section {
+      background: rgba(255,255,255,0.1);
+      border-radius: 15px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      backdrop-filter: blur(10px);
+      text-align: center;
+    }
+
+    .share-url {
+      background: rgba(255,255,255,0.9);
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 25px;
+      width: 70%;
+      margin-right: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .copy-btn {
+      background: gold;
+      color: #333;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 25px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    /* 分頁標籤 */
+    .tabs {
+      display: flex;
+      background: rgba(255,255,255,0.1);
+      border-radius: 15px 15px 0 0;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 1rem 2rem;
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .tab:hover {
+      background: rgba(255,255,255,0.1);
+    }
+
+    .tab.active {
+      background: rgba(255,255,255,0.2);
+      color: gold;
+      font-weight: bold;
+    }
+
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 50px;
+      height: 3px;
+      background: gold;
+      border-radius: 2px;
+    }
+
+    /* 內容區域 */
+    .content {
+      background: rgba(255,255,255,0.95);
+      border-radius: 0 0 20px 20px;
+      padding: 2rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      backdrop-filter: blur(10px);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* 玩家列表樣式 */
+    .player-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .player-item {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem;
+      background: rgba(102, 126, 234, 0.1);
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .player-item:hover {
+      background: rgba(102, 126, 234, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .player-item input[type="checkbox"] {
+      margin-right: 0.5rem;
+      transform: scale(1.2);
+      accent-color: #667eea;
+    }
+
+    .player-item label {
+      cursor: pointer;
+      flex: 1;
+    }
+
+    /* 按鈕樣式 */
+    .btn {
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: 50px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+      margin-right: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(45deg, #28a745, #20c997);
+    }
+
+    /* 結果顯示 */
+    .results {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background: rgba(102, 126, 234, 0.1);
+      border-radius: 15px;
+      border-left: 5px solid #667eea;
+    }
+
+    .results h3 {
+      color: #667eea;
+      margin-bottom: 1rem;
+      font-size: 1.3rem;
+    }
+
+    .team-group, .match-group, .pair-group {
+      background: white;
+      padding: 1rem;
+      margin-bottom: 0.8rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      border-left: 4px solid gold;
+    }
+
+    .team-name {
+      font-weight: bold;
+      color: #667eea;
+      margin-bottom: 0.5rem;
+    }
+
+    .match-vs {
+      text-align: center;
+      font-weight: bold;
+      color: #764ba2;
+      margin: 0.5rem 0;
+    }
+
+    /* 比分記錄樣式 */
+    .match-controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .winner-select {
+      padding: 0.3rem 0.8rem;
+      border: 2px solid #ddd;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      background: white;
+    }
+
+    .score-input {
+      width: 60px;
+      padding: 0.3rem 0.5rem;
+      border: 2px solid #ddd;
+      border-radius: 15px;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    .score-separator {
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    /* 自訂玩家欄位樣式 */
+    .custom-players {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .custom-player-item {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem;
+      background: rgba(118, 75, 162, 0.1);
+      border-radius: 8px;
+      gap: 0.5rem;
+    }
+
+    .custom-player-item input[type="text"] {
+      flex: 1;
+      padding: 0.4rem 0.8rem;
+      border: 2px solid #ddd;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      transition: border-color 0.3s ease;
+    }
+
+    .custom-player-item input[type="text"]:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .custom-player-item input[type="checkbox"] {
+      transform: scale(1.2);
+      accent-color: #764ba2;
+    }
+
+    .custom-player-item label {
+      cursor: pointer;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    /* 隊伍顏色標示 */
+    .team-a-player {
+      color: #dc3545;
+      font-weight: bold;
+    }
+
+    .team-b-player {
+      color: #007bff;
+      font-weight: bold;
+    }
+
+
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+      
+      .header h1 {
+        font-size: 2rem;
+      }
+      
+      .tab {
+        padding: 0.8rem 1rem;
+        font-size: 1rem;
+      }
+      
+      .player-list {
+        grid-template-columns: 1fr;
+      }
+
+      .export-teams {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .export-match {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: 0.5rem;
+      }
+    }
+
+    @media print {
+      body {
+        background: white;
+      }
+      
+      .trophy-bg, .share-section, .tabs, .btn {
+        display: none !important;
+      }
+      
+      .export-view {
+        display: block !important;
+        box-shadow: none;
+        margin: 0;
+        padding: 1rem;
+      }
+      
+      .content {
+        background: white;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="trophy-bg">
+    <div class="trophy">🏆</div>
+    <div class="trophy">🥇</div>
+    <div class="trophy">🏆</div>
+    <div class="trophy">🥇</div>
+    <div class="trophy">🏆</div>
+    <div class="trophy">🥇</div>
+  </div>
+
+  <div class="container">
+    <div class="header">
+      <h1>
+        <span class="trophy-icon">🏆</span>
+        羽球分隊工具
+        <span class="trophy-icon">🏆</span>
+      </h1>
+      <p>羽球爭霸</p>
+    </div>
+
+    <!-- 分享功能 -->
+    <div class="share-section" style="color: white;">
+      <div style="margin-bottom: 0.5rem;">📱 分享給朋友即時觀看</div>
+      <input type="text" class="share-url" id="shareUrl" readonly>
+      <button class="copy-btn" onclick="copyShareUrl()">複製連結</button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('simple')">簡易分組</button>
+      <button class="tab" onclick="switchTab('team')">2隊PK</button>
+    </div>
+
+    <div class="content">
+      <!-- 簡易分組頁面 -->
+      <div id="simple" class="tab-content active">
+        <h3>請勾選出席人員：</h3>
+        <div class="player-list">
+          <div class="player-item">
+            <input type="checkbox" id="simple-player1" name="simple-players" value="楊傑堰">
+            <label for="simple-player1">楊傑堰</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="simple-player2" name="simple-players" value="王鈺婷">
+            <label for="simple-player2">王鈺婷</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="simple-player3" name="simple-players" value="林展夆">
+            <label for="simple-player3">林展夆</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="simple-player4" name="simple-players" value="張為順">
+            <label for="simple-player4">張為順</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="simple-player5" name="simple-players" value="彭為雍">
+            <label for="simple-player5">彭為雍</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="simple-player6" name="simple-players" value="傅敬元">
+            <label for="simple-player6">傅敬元</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="simple-player7" name="simple-players" value="鄭雯瑄">
+            <label for="simple-player7">鄭雯瑄</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="simple-player8" name="simple-players" value="陳福慶">
+            <label for="simple-player8">陳福慶</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="simple-player9" name="simple-players" value="洪亭昱">
+            <label for="simple-player9">洪亭昱</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="simple-player10" name="simple-players" value="魏展鎰">
+            <label for="simple-player10">魏展鎰</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="simple-player11" name="simple-players" value="趙仁瑋">
+            <label for="simple-player11">趙仁瑋</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="simple-player12" name="simple-players" value="黃世銘">
+            <label for="simple-player12">黃世銘</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="simple-player13" name="simple-players" value="孫貴賢">
+            <label for="simple-player13">孫貴賢</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="simple-player14" name="simple-players" value="沈建宇">
+            <label for="simple-player14">沈建宇</label>
+          </div>
+        </div>
+        
+        <h3 style="margin-top: 1.5rem;">自訂玩家：</h3>
+        <div class="custom-players">
+          <div class="custom-player-item">
+            <input type="text" id="simple-custom1" placeholder="輸入姓名" maxlength="10">
+            <input type="checkbox" id="simple-custom-check1" name="simple-players" value="">
+            <label for="simple-custom-check1">加入分組</label>
+          </div>
+          <div class="custom-player-item">
+            <input type="text" id="simple-custom2" placeholder="輸入姓名" maxlength="10">
+            <input type="checkbox" id="simple-custom-check2" name="simple-players" value="">
+            <label for="simple-custom-check2">加入分組</label>
+          </div>
+          <div class="custom-player-item">
+            <input type="text" id="simple-custom3" placeholder="輸入姓名" maxlength="10">
+            <input type="checkbox" id="simple-custom-check3" name="simple-players" value="">
+            <label for="simple-custom-check3">加入分組</label>
+          </div>
+          <div class="custom-player-item">
+            <input type="text" id="simple-custom4" placeholder="輸入姓名" maxlength="10">
+            <input type="checkbox" id="simple-custom-check4" name="simple-players" value="">
+            <label for="simple-custom-check4">加入分組</label>
+          </div>
+        </div>
+        <button class="btn" onclick="generateSimpleTeams()">🎯 開始分組</button>
+        <div id="simple-results" class="results" style="display: none;">
+          <h3>分組結果</h3>
+          <div id="simple-results-content"></div>
+        </div>
+      </div>
+
+      <!-- 團隊對戰頁面 -->
+      <div id="team" class="tab-content">
+        <h3>請勾選出席人員：</h3>
+        <div class="player-list">
+          <div class="player-item">
+            <input type="checkbox" id="team-player1" name="team-players" value="楊傑堰">
+            <label for="team-player1">楊傑堰</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="team-player2" name="team-players" value="王鈺婷">
+            <label for="team-player2">王鈺婷</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="team-player3" name="team-players" value="林展夆">
+            <label for="team-player3">林展夆</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="team-player4" name="team-players" value="張為順">
+            <label for="team-player4">張為順</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="team-player5" name="team-players" value="彭為庸">
+            <label for="team-player5">彭為庸</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="team-player6" name="team-players" value="傅敬元">
+            <label for="team-player6">傅敬元</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="team-player7" name="team-players" value="鄭雯瑄">
+            <label for="team-player7">鄭雯瑄</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="team-player8" name="team-players" value="陳福慶">
+            <label for="team-player8">陳福慶</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="team-player9" name="team-players" value="洪亭昱">
+            <label for="team-player9">洪亭昱</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="team-player10" name="team-players" value="魏展鎰">
+            <label for="team-player10">魏展鎰</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="team-player11" name="team-players" value="趙仁瑋">
+            <label for="team-player11">趙仁瑋</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="team-player12" name="team-players" value="黃世銘">
+            <label for="team-player12">黃世銘</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="team-player13" name="team-players" value="孫貴賢">
+            <label for="team-player13">孫貴賢</label>
+          </div>
+          <div class="player-item">
+            <input type="checkbox" id="team-player14" name="team-players" value="沈建宇">
+            <label for="team-player14">沈建宇</label>
+          </div>
+        </div>
+        
+        <h3 style="margin-top: 1.5rem;">自訂玩家：</h3>
+        <div class="custom-players">
+          <div class="custom-player-item">
+            <input type="text" id="team-custom1" placeholder="輸入姓名" maxlength="10">
+            <input type="checkbox" id="team-custom-check1" name="team-players" value="">
+            <label for="team-custom-check1">加入分組</label>
+          </div>
+          <div class="custom-player-item">
+            <input type="text" id="team-custom2" placeholder="輸入姓名" maxlength="10">
+            <input type="checkbox" id="team-custom-check2" name="team-players" value="">
+            <label for="team-custom-check2">加入分組</label>
+          </div>
+          <div class="custom-player-item">
+            <input type="text" id="team-custom3" placeholder="輸入姓名" maxlength="10">
+            <input type="checkbox" id="team-custom-check3" name="team-players" value="">
+            <label for="team-custom-check3">加入分組</label>
+          </div>
+          <div class="custom-player-item">
+            <input type="text" id="team-custom4" placeholder="輸入姓名" maxlength="10">
+            <input type="checkbox" id="team-custom-check4" name="team-players" value="">
+            <label for="team-custom-check4">加入分組</label>
+          </div>
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label style="margin-right: 1.5rem;">
+            <input type="radio" name="match-count" value="5" checked style="margin-right: 0.5rem;">
+            5場對戰
+          </label>
+          <label style="margin-right: 1.5rem;">
+            <input type="radio" name="match-count" value="6" style="margin-right: 0.5rem;">
+            6場對戰
+          </label>
+          <label>
+            <input type="radio" name="match-count" value="7" style="margin-right: 0.5rem;">
+            7場對戰
+          </label>
+        </div>
+        <button class="btn" onclick="generateTeamBattle()">⚔️ 生成對戰</button>
+        <div id="team-results" class="results" style="display: none;">
+          <h3>對戰結果</h3>
+          <div id="team-results-content"></div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 匯出視圖 -->
+    <div id="export-view" class="export-view">
+      <div class="export-header">
+        <h2>🏸 羽球對戰表</h2>
+        <p id="export-date"></p>
+      </div>
+      
+      <div class="export-teams" id="export-teams">
+        <!-- 隊伍資訊將在這裡動態生成 -->
+      </div>
+      
+      <div class="export-matches">
+        <h3 style="text-align: center; margin-bottom: 1rem;">對戰安排</h3>
+        <div id="export-matches-content">
+          <!-- 對戰表將在這裡動態生成 -->
+        </div>
+      </div>
+      
+      <div style="text-align: center; margin-top: 2rem;">
+        <button class="btn" onclick="printResults()">🖨️ 列印</button>
+        <button class="btn" onclick="closeExport()">返回</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 全域變數儲存當前對戰資料
+    let currentBattleData = {
+      teamA: [],
+      teamB: [],
+      matches: [],
+      scores: {},
+      winners: {}
+    };
+
+    // 打亂陣列函數
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    // 初始化分享URL
+    function initShareUrl() {
+      const currentUrl = window.location.href;
+      const shareUrl = currentUrl + (currentUrl.includes('?') ? '&' : '?') + 'view=1';
+      document.getElementById('shareUrl').value = shareUrl;
+      
+      // 檢查是否為觀看模式
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('view') === '1') {
+        // 隱藏操作按鈕，只顯示結果
+        const buttons = document.querySelectorAll('.btn:not(.copy-btn)');
+        buttons.forEach(btn => {
+          if (!btn.textContent.includes('列印') && !btn.textContent.includes('返回')) {
+            btn.style.display = 'none';
+          }
+        });
+        
+        // 隱藏玩家選擇區域
+        const playerSections = document.querySelectorAll('.player-list, .custom-players, h3');
+        playerSections.forEach(section => {
+          if (!section.textContent.includes('分組結果') && !section.textContent.includes('對戰結果')) {
+            section.style.display = 'none';
+          }
+        });
+      }
+    }
+
+    // 複製分享連結
+    function copyShareUrl() {
+      const shareUrl = document.getElementById('shareUrl');
+      shareUrl.select();
+      shareUrl.setSelectionRange(0, 99999);
+      
+      try {
+        document.execCommand('copy');
+        const btn = event.target;
+        const originalText = btn.textContent;
+        btn.textContent = '已複製!';
+        btn.style.background = '#28a745';
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.style.background = 'gold';
+        }, 2000);
+      } catch (err) {
+        alert('複製失敗，請手動複製連結');
+      }
+    }
+
+    // 分頁切換
+    function switchTab(tabName) {
+      const tabContents = document.querySelectorAll('.tab-content');
+      tabContents.forEach(content => content.classList.remove('active'));
+      
+      const tabs = document.querySelectorAll('.tab');
+      tabs.forEach(tab => tab.classList.remove('active'));
+      
+      document.getElementById(tabName).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    // 簡易分組功能
+    function generateSimpleTeams() {
+      updateCustomPlayerValues('simple');
+      
+      const checked = Array.from(document.querySelectorAll('input[name="simple-players"]:checked'));
+      const names = shuffle(checked.map(cb => cb.value).filter(name => name.trim() !== ''));
+      const resultsDiv = document.getElementById("simple-results-content");
+      const resultsContainer = document.getElementById("simple-results");
+      
+      resultsDiv.innerHTML = "";
+      
+      if (names.length < 2) {
+        resultsDiv.innerHTML = '<div class="team-group">請至少選擇兩位玩家。</div>';
+        resultsContainer.style.display = 'block';
+        return;
+      }
+
+      if (names.length % 2 === 0) {
+        names.forEach((name, idx) => {
+          if (idx % 2 === 0) {
+            const group = document.createElement("div");
+            group.className = "pair-group";
+            group.innerHTML = `
+              <div class="team-name">第${(idx / 2) + 1}組</div>
+              <div>${names[idx]} ＆ ${names[idx + 1]}</div>
+            `;
+            resultsDiv.appendChild(group);
+          }
+        });
+      } else {
+        names.forEach((name, idx) => {
+          const group = document.createElement("div");
+          group.className = "pair-group";
+          group.innerHTML = `<div>${idx + 1}. ${name}</div>`;
+          resultsDiv.appendChild(group);
+        });
+      }
+      
+      resultsContainer.style.display = 'block';
+      saveAndBroadcastResults();
+    }
+
+    // 團隊對戰功能
+    function generateTeamBattle() {
+      updateCustomPlayerValues('team');
+      
+      const checked = Array.from(document.querySelectorAll('input[name="team-players"]:checked'));
+      const activePlayers = shuffle(checked.map(cb => cb.value).filter(name => name.trim() !== ''));
+      const matchCountRadio = document.querySelector('input[name="match-count"]:checked');
+      const matchCount = parseInt(matchCountRadio.value);
+      const resultsDiv = document.getElementById("team-results-content");
+      const resultsContainer = document.getElementById("team-results");
+      
+      resultsDiv.innerHTML = "";
+      
+      if (activePlayers.length < 6) {
+        resultsDiv.innerHTML = '<div class="team-group">請至少選擇六位玩家進行團體對戰。</div>';
+        resultsContainer.style.display = 'block';
+        return;
+      }
+
+      const half = Math.floor(activePlayers.length / 2);
+      const teamA = activePlayers.slice(0, half);
+      const teamB = activePlayers.slice(half);
+
+      // 儲存當前對戰資料
+      currentBattleData.teamA = teamA;
+      currentBattleData.teamB = teamB;
+      currentBattleData.matches = generateMatches(teamA, teamB, matchCount);
+      currentBattleData.scores = {};
+      currentBattleData.winners = {};
+
+      // 顯示隊伍分組
+      const teamADiv = document.createElement("div");
+      teamADiv.className = "team-group";
+      teamADiv.innerHTML = `
+        <div class="team-name">🔴 隊伍A (${teamA.length}人)</div>
+        <div>${teamA.join(' • ')}</div>
+      `;
+      resultsDiv.appendChild(teamADiv);
+
+      const teamBDiv = document.createElement("div");
+      teamBDiv.className = "team-group";
+      teamBDiv.innerHTML = `
+        <div class="team-name">🔵 隊伍B (${teamB.length}人)</div>
+        <div>${teamB.join(' • ')}</div>
+      `;
+      resultsDiv.appendChild(teamBDiv);
+
+      // 顯示對戰配對
+      const matchesDiv = document.createElement("div");
+      matchesDiv.innerHTML = `<div class="team-name">⚔️ 對戰安排 (共${currentBattleData.matches.length}場)</div>`;
+      
+      currentBattleData.matches.forEach((match, i) => {
+        const matchDiv = document.createElement("div");
+        matchDiv.className = "match-group";
+        matchDiv.innerHTML = `
+          <div>🏸 G ${i + 1} </div>
+          <div><span class="team-a-player">${match.teamA[0]} (A)</span> ＆ <span class="team-a-player">${match.teamA[1]} (A)</span></div>
+          <div class="match-vs">VS</div>
+          <div><span class="team-b-player">${match.teamB[0]} (B)</span> ＆ <span class="team-b-player">${match.teamB[1]} (B)</span></div>
+          <div class="match-controls">
+            <select class="winner-select" onchange="updateWinner(${i}, this.value)">
+              <option value="">勝者</option>
+              <option value="A">A隊</option>
+              <option value="B">B隊</option>
+            </select>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span>比分:</span>
+              <input type="number" class="score-input" placeholder="0" min="0" max="99" 
+                     onchange="updateScore(${i}, 'A', this.value)">
+              <span class="score-separator">:</span>
+              <input type="number" class="score-input" placeholder="0" min="0" max="99" 
+                     onchange="updateScore(${i}, 'B', this.value)">
+            </div>
+          </div>
+        `;
+        matchesDiv.appendChild(matchDiv);
+      });
+      
+      resultsDiv.appendChild(matchesDiv);
+
+      // 顯示出場統計
+      const statsDiv = document.createElement("div");
+      statsDiv.className = "team-group";
+      statsDiv.innerHTML = '<div class="team-name">📊 出場統計</div>';
+      
+      const playerStats = calculatePlayerStats(currentBattleData.matches, teamA, teamB);
+      
+      ['A', 'B'].forEach(team => {
+        const teamPlayers = team === 'A' ? teamA : teamB;
+        const colorClass = team === 'A' ? 'team-a-player' : 'team-b-player';
+        const statsHtml = teamPlayers.map(player => {
+          const count = playerStats[player] || 0;
+          return `<div><span class="${colorClass}">${player}</span>: ${count}場</div>`;
+        }).join('');
+        
+        statsDiv.innerHTML += `
+          <div style="margin-top: 10px;">
+            <strong>隊伍${team}出場次數：</strong><br>
+            ${statsHtml}
+          </div>
+        `;
+      });
+      
+      resultsDiv.appendChild(statsDiv);
+      resultsContainer.style.display = 'block';
+      saveAndBroadcastResults();
+    }
+
+    // 更新勝者
+    function updateWinner(matchIndex, winner) {
+      currentBattleData.winners[matchIndex] = winner;
+      saveAndBroadcastResults();
+    }
+
+    // 更新比分
+    function updateScore(matchIndex, team, score) {
+      if (!currentBattleData.scores[matchIndex]) {
+        currentBattleData.scores[matchIndex] = {};
+      }
+      currentBattleData.scores[matchIndex][team] = score;
+      saveAndBroadcastResults();
+    }
+
+    // 匯出結果
+    function exportResults() {
+      if (!currentBattleData.matches.length) {
+        alert('請先生成對戰安排');
+        return;
+      }
+
+      // 設定日期
+      const now = new Date();
+      const exportDateElement = document.getElementById('export-date');
+      if (exportDateElement) {
+        exportDateElement.textContent = 
+          `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+      }
+
+      // 生成隊伍資訊
+      const teamsDiv = document.getElementById('export-teams');
+      if (teamsDiv) {
+        teamsDiv.innerHTML = `
+          <div class="export-team team-a">
+            <h4>🔴 隊伍A</h4>
+            <div>${currentBattleData.teamA.join('<br>')}</div>
+          </div>
+          <div class="export-team team-b">
+            <h4>🔵 隊伍B</h4>
+            <div>${currentBattleData.teamB.join('<br>')}</div>
+          </div>
+        `;
+      }
+
+      // 生成對戰表
+      const matchesDiv = document.getElementById('export-matches-content');
+      if (matchesDiv) {
+        matchesDiv.innerHTML = '';
+
+        currentBattleData.matches.forEach((match, i) => {
+          const winner = currentBattleData.winners[i] || '';
+          const score = currentBattleData.scores[i] || {};
+          const scoreText = (score.A !== undefined && score.B !== undefined) 
+            ? `${score.A}:${score.B}` : '--:--';
+          
+          const matchDiv = document.createElement("div");
+          matchDiv.className = "export-match";
+          matchDiv.innerHTML = `
+            <div class="export-match-num">G${i + 1}</div>
+            <div style="color: #dc3545;">${match.teamA.join(' & ')}</div>
+            <div class="export-vs">VS</div>
+            <div style="color: #007bff;">${match.teamB.join(' & ')}</div>
+            <div class="export-score">${scoreText}</div>
+            <div class="export-winner" style="color: ${winner === 'A' ? '#dc3545' : winner === 'B' ? '#007bff' : '#666'};">
+              ${winner ? winner + '隊' : '--'}
+            </div>
+          `;
+          matchesDiv.appendChild(matchDiv);
+        });
+      }
+
+      // 顯示匯出視圖
+      const exportView = document.getElementById('export-view');
+      const container = document.querySelector('.container');
+      
+      if (exportView && container) {
+        exportView.style.display = 'block';
+        container.style.display = 'none';
+        
+        // 確保頁面滾動到頂部
+        window.scrollTo(0, 0);
+      } else {
+        console.error('找不到匯出視圖元素');
+        alert('匯出功能發生錯誤，請重新整理頁面後再試');
+      }
+    }
+
+    // 列印結果
+    function printResults() {
+      window.print();
+    }
+
+    // 關閉匯出視圖
+    function closeExport() {
+      const exportView = document.getElementById('export-view');
+      const container = document.querySelector('.container');
+      
+      if (exportView && container) {
+        exportView.style.display = 'none';
+        container.style.display = 'block';
+        window.scrollTo(0, 0);
+      }
+    }
+
+    // 生成比賽的主函數 - 優化避免重複搭檔
+    function generateMatches(teamA, teamB, matchCount) {
+      const matches = [];
+      const playerCountA = {};
+      const playerCountB = {};
+      const pairHistoryA = new Set(); // 記錄A隊已使用的配對
+      const pairHistoryB = new Set(); // 記錄B隊已使用的配對
+      
+      teamA.forEach(player => playerCountA[player] = 0);
+      teamB.forEach(player => playerCountB[player] = 0);
+      
+      // 生成所有可能配對並打亂順序
+      const allPairsA = [];
+      const allPairsB = [];
+      
+      for (let i = 0; i < teamA.length; i++) {
+        for (let j = i + 1; j < teamA.length; j++) {
+          allPairsA.push([teamA[i], teamA[j]]);
+        }
+      }
+      
+      for (let i = 0; i < teamB.length; i++) {
+        for (let j = i + 1; j < teamB.length; j++) {
+          allPairsB.push([teamB[i], teamB[j]]);
+        }
+      }
+      
+      // 打亂配對順序增加隨機性
+      shuffle(allPairsA);
+      shuffle(allPairsB);
+      
+      for (let matchIndex = 0; matchIndex < matchCount; matchIndex++) {
+        let bestPairA = null;
+        let bestPairB = null;
+        let bestScore = Infinity;
+        let foundUnusedPair = false;
+        
+        // 優先選擇未使用過的配對
+        for (const pairA of allPairsA) {
+          const pairKeyA = pairA.sort().join('-');
+          if (pairHistoryA.has(pairKeyA)) continue;
+          
+          for (const pairB of allPairsB) {
+            const pairKeyB = pairB.sort().join('-');
+            if (pairHistoryB.has(pairKeyB)) continue;
+            
+            const scoreA = (playerCountA[pairA[0]] || 0) + (playerCountA[pairA[1]] || 0);
+            const scoreB = (playerCountB[pairB[0]] || 0) + (playerCountB[pairB[1]] || 0);
+            const totalScore = scoreA + scoreB;
+            
+            if (totalScore < bestScore) {
+              bestScore = totalScore;
+              bestPairA = [...pairA];
+              bestPairB = [...pairB];
+              foundUnusedPair = true;
+            }
+          }
+        }
+        
+        // 如果沒有找到未使用的配對，則從所有配對中選擇出場次數最少的
+        if (!foundUnusedPair) {
+          bestScore = Infinity;
+          for (const pairA of allPairsA) {
+            for (const pairB of allPairsB) {
+              const scoreA = (playerCountA[pairA[0]] || 0) + (playerCountA[pairA[1]] || 0);
+              const scoreB = (playerCountB[pairB[0]] || 0) + (playerCountB[pairB[1]] || 0);
+              const totalScore = scoreA + scoreB;
+              
+              if (totalScore < bestScore) {
+                bestScore = totalScore;
+                bestPairA = [...pairA];
+                bestPairB = [...pairB];
+              }
+            }
+          }
+        }
+        
+        if (bestPairA && bestPairB) {
+          matches.push({
+            teamA: bestPairA,
+            teamB: bestPairB
+          });
+          
+          // 記錄使用過的配對
+          const pairKeyA = bestPairA.slice().sort().join('-');
+          const pairKeyB = bestPairB.slice().sort().join('-');
+          pairHistoryA.add(pairKeyA);
+          pairHistoryB.add(pairKeyB);
+          
+          // 更新出場次數
+          bestPairA.forEach(player => playerCountA[player]++);
+          bestPairB.forEach(player => playerCountB[player]++);
+        }
+      }
+      
+      return matches;
+    }
+    
+    // 更新自訂玩家的值
+    function updateCustomPlayerValues(tabType) {
+      for (let i = 1; i <= 4; i++) {
+        const textInput = document.getElementById(`${tabType}-custom${i}`);
+        const checkbox = document.getElementById(`${tabType}-custom-check${i}`);
+        
+        if (textInput && checkbox) {
+          const name = textInput.value.trim();
+          if (name) {
+            checkbox.value = name;
+            if (!checkbox.checked) {
+              checkbox.checked = true;
+            }
+          } else {
+            checkbox.value = '';
+            checkbox.checked = false;
+          }
+        }
+      }
+    }
+
+    // 儲存並廣播結果（模擬即時更新）
+    function saveAndBroadcastResults() {
+      // 在實際應用中，這裡可以發送到伺服器或使用WebSocket
+      // 現在只是儲存到記憶體中
+      try {
+        const data = {
+          simpleResults: document.getElementById("simple-results").innerHTML,
+          teamResults: document.getElementById("team-results").innerHTML,
+          battleData: currentBattleData,
+          timestamp: new Date().toISOString()
+        };
+        
+        // 模擬儲存到記憶體
+        window.sharedData = data;
+        
+        // 如果是觀看模式，可以定期檢查更新
+        if (new URLSearchParams(window.location.search).get('view') === '1') {
+          // 觀看者可以看到即時更新
+          setTimeout(loadSharedResults, 100);
+        }
+      } catch (error) {
+        console.log('儲存結果時發生錯誤:', error);
+      }
+    }
+
+    // 載入共享結果
+    function loadSharedResults() {
+      try {
+        if (window.sharedData) {
+          const data = window.sharedData;
+          if (data.simpleResults) {
+            document.getElementById("simple-results").innerHTML = data.simpleResults;
+            document.getElementById("simple-results").style.display = 'block';
+          }
+          if (data.teamResults) {
+            document.getElementById("team-results").innerHTML = data.teamResults;
+            document.getElementById("team-results").style.display = 'block';
+          }
+          if (data.battleData) {
+            currentBattleData = data.battleData;
+          }
+        }
+      } catch (error) {
+        console.log('載入共享結果時發生錯誤:', error);
+      }
+    }
+
+    // 計算玩家統計
+    function calculatePlayerStats(matches, teamA, teamB) {
+      const stats = {};
+      
+      matches.forEach(match => {
+        match.teamA.forEach(player => {
+          stats[player] = (stats[player] || 0) + 1;
+        });
+        match.teamB.forEach(player => {
+          stats[player] = (stats[player] || 0) + 1;
+        });
+      });
+      
+      return stats;
+    }
+
+    // 監聽自訂姓名輸入框的變化
+    document.addEventListener('DOMContentLoaded', function() {
+      // 初始化分享URL
+      initShareUrl();
+      
+      // 為所有自訂輸入框添加事件監聽器
+      for (let tabType of ['simple', 'team']) {
+        for (let i = 1; i <= 4; i++) {
+          const textInput = document.getElementById(`${tabType}-custom${i}`);
+          const checkbox = document.getElementById(`${tabType}-custom-check${i}`);
+          
+          if (textInput && checkbox) {
+            textInput.addEventListener('input', function() {
+              const name = this.value.trim();
+              checkbox.value = name;
+              if (name && !checkbox.checked) {
+                checkbox.checked = true;
+              } else if (!name) {
+                checkbox.checked = false;
+              }
+            });
+          }
+        }
+      }
+      
+      // 如果是觀看模式，載入共享結果
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('view') === '1') {
+        loadSharedResults();
+        // 設定定期檢查更新（每3秒）
+        setInterval(loadSharedResults, 3000);
+      }
+    });
+  </script>
+</body>
+</html>
